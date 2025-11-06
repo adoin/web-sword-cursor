@@ -110,6 +110,8 @@
     <div class="controls">
       <button id="enableBtn">启用剑形指针</button>
       <button id="disableBtn" style="display: none;">禁用剑形指针</button>
+      <button id="sword1Btn">剑 1</button>
+      <button id="sword2Btn">剑 2</button>
       <button id="sizeSmallBtn">小尺寸 (24px)</button>
       <button id="sizeMediumBtn">中尺寸 (32px)</button>
       <button id="sizeLargeBtn">大尺寸 (48px)</button>
@@ -123,7 +125,8 @@
       <h3>使用方法</h3>
       <p>在你的项目中导入并使用：</p>
       <code>import { initSwordCursor } from 'web-sword-cursor';</code><br>
-      <code>initSwordCursor({ size: 32 });</code>
+      <code>initSwordCursor({ size: 32, swordType: 'sword-1' });</code>
+      <p style="margin-top: 10px;">可用的剑类型：<code>'sword-1'</code> 或 <code>'sword-2'</code></p>
     </div>
   </div>
 
@@ -131,19 +134,34 @@
     import { initSwordCursor } from './src/index.ts';
 
     let cursorManager = null;
+    let currentSwordType = 'sword-1';
 
     const enableBtn = document.getElementById('enableBtn');
     const disableBtn = document.getElementById('disableBtn');
     const directionSpan = document.getElementById('direction');
 
+    function initOrReinitCursor(options = {}) {
+      // 如果已经存在，先销毁
+      if (cursorManager) {
+        cursorManager.destroy();
+      }
+      
+      // 创建新的实例
+      cursorManager = initSwordCursor({ 
+        size: 32, 
+        swordType: currentSwordType,
+        ...options 
+      });
+      
+      // 更新按钮显示
+      enableBtn.style.display = 'none';
+      disableBtn.style.display = 'inline-block';
+    }
+
     enableBtn.addEventListener('click', () => {
       if (!cursorManager) {
-        cursorManager = initSwordCursor({ size: 32 });
+        initOrReinitCursor();
         
-        // 更新按钮显示
-        enableBtn.style.display = 'none';
-        disableBtn.style.display = 'inline-block';
-
         // 定期更新方向显示
         setInterval(() => {
           if (cursorManager) {
@@ -162,6 +180,21 @@
         enableBtn.style.display = 'inline-block';
         disableBtn.style.display = 'none';
         directionSpan.textContent = 'idle';
+      }
+    });
+
+    // 切换剑类型
+    document.getElementById('sword1Btn').addEventListener('click', () => {
+      currentSwordType = 'sword-1';
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('sword2Btn').addEventListener('click', () => {
+      currentSwordType = 'sword-2';
+      if (cursorManager) {
+        initOrReinitCursor();
       }
     });
 

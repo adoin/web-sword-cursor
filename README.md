@@ -6,6 +6,14 @@
 
 - 🎯 自定义剑形鼠标指针
 - 🔄 根据移动方向自动旋转（剑默认方向：从左下到右上 ↗）
+- ✨ 动态剑尖光晕效果：
+  - 自动渲染 SVG 滤镜光晕
+  - 光的方向与剑身相反，创造剑气外放效果
+  - 平滑跟随剑的旋转
+- 🎬 平滑的旋转动画：
+  - 使用 requestAnimationFrame 实现丝滑的插值动画
+  - 大角度变化时自动使用快速翻转效果
+  - 始终选择最短的旋转路径
 - ⚡ 智能角度阈值，避免抖动（≥3° 才更新）
 - 📦 纯 JavaScript，无依赖
 - 🎨 SVG 内嵌，无需额外资源文件
@@ -29,8 +37,11 @@ yarn add web-sword-cursor
 ```javascript
 import { initSwordCursor } from 'web-sword-cursor';
 
-// 快速启用
+// 快速启用（默认使用 sword-1）
 initSwordCursor();
+
+// 选择特定的剑
+initSwordCursor({ swordType: 'sword-2' });
 ```
 
 ### 高级使用
@@ -43,7 +54,8 @@ const manager = new CursorManager({
   size: 32,                    // 指针大小（像素）
   showDirection: true,         // 显示运动方向
   directionSensitivity: 50,    // 方向更新灵敏度（毫秒）
-  zIndex: 9999                 // 自定义 z-index
+  zIndex: 9999,                // 自定义 z-index
+  swordType: 'sword-1'         // 选择剑类型：'sword-1' 或 'sword-2'
 });
 
 // 启用
@@ -94,11 +106,14 @@ constructor(options?: CursorOptions)
 ### 类型定义
 
 ```typescript
+type SwordType = 'sword-1' | 'sword-2';
+
 interface CursorOptions {
   size?: number;                  // 指针大小（像素），默认 32
   showDirection?: boolean;        // 是否显示运动方向，默认 true
   directionSensitivity?: number;  // 方向更新灵敏度（毫秒），默认 50
   zIndex?: number;                // 自定义 z-index，默认 9999
+  swordType?: SwordType;          // 选择剑类型，默认 'sword-1'
 }
 
 type Direction = 

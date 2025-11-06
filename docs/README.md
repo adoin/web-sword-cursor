@@ -10,43 +10,84 @@
 - 角度转换逻辑
 - 角度变化阈值机制（3° 阈值避免抖动）
 - 各个方向的角度对应关系
+- 旋转中心点设置（右上角）
 - 代码实现示例
+
+### [SMOOTH_ROTATION.md](./SMOOTH_ROTATION.md)
+平滑旋转优化说明文档，包括：
+- 为什么使用 requestAnimationFrame 替代 CSS transition
+- 角度插值（Lerp）实现原理
+- 大角度翻转优化策略
+- 角度标准化（选择最短路径）
+- 性能优化措施
+- 效果对比和未来改进方向
+
+### [SWORD_TYPES.md](./SWORD_TYPES.md)
+剑类型系统说明文档，包括：
+- 可用的剑类型列表
+- 如何选择和切换剑类型
+- 添加新剑类型的完整步骤
+- SVG 文件要求和规范
+- 最佳实践和示例代码
+
+### [GLOW_EFFECT.md](./GLOW_EFFECT.md)
+剑尖光晕效果说明文档，包括：
+- 光晕效果的特性和视觉表现
+- SVG 滤镜技术实现原理
+- 如何自定义光晕颜色和大小
+- 添加脉动、闪烁等特效
+- 性能优化和浏览器兼容性
 
 ## 添加新的 SVG 图标
 
 当你需要添加新的剑形 SVG 图标时，请遵循以下步骤：
 
 ### 1. 方向约定
-确保你的 SVG 图标的**默认方向是从左下到右上（↗）**，即 -135° 或 45° 方向。
+确保你的 SVG 图标的**默认方向是从左下到右上（↗）**，即 -45° 或 315° 方向。
 
 ### 2. 放置文件
 将 SVG 文件放到 `src/assets/svgs/` 目录下，例如：
 ```
 src/assets/svgs/
 ├── sword-1.svg  (已有)
-└── sword-2.svg  (新增)
+├── sword-2.svg  (已有)
+└── sword-3.svg  (新增)
 ```
 
-### 3. 导入 SVG
+### 3. 更新类型定义
+在 `src/types.ts` 中添加新的剑类型：
+```typescript
+export type SwordType = 'sword-1' | 'sword-2' | 'sword-3'; // 添加 sword-3
+```
+
+### 4. 导入 SVG
 在 `src/cursor-manager.ts` 中导入新的 SVG：
 ```typescript
 import sword1Svg from './assets/svgs/sword-1.svg';
-import sword2Svg from './assets/svgs/sword-2.svg'; // 新增
+import sword2Svg from './assets/svgs/sword-2.svg';
+import sword3Svg from './assets/svgs/sword-3.svg'; // 新增
 ```
 
-### 4. 注册到 Map
+### 5. 注册到 Map
 在 `svgData` Map 中注册：
 ```typescript
-private svgData: Map<string, string> = new Map([
+private svgData: Map<SwordType, string> = new Map([
   ['sword-1', sword1Svg],
-  ['sword-2', sword2Svg], // 新增
+  ['sword-2', sword2Svg],
+  ['sword-3', sword3Svg], // 新增
 ]);
 ```
 
-### 5. 使用
-可以在 `createCursorElement()` 方法中切换使用不同的剑：
+### 6. 使用
+在初始化时选择剑类型：
 ```typescript
-const svgContent = this.svgData.get('sword-2') || '';
+initSwordCursor({ swordType: 'sword-3' });
+```
+
+或通过 CursorManager：
+```typescript
+const manager = new CursorManager({ swordType: 'sword-3' });
+manager.init();
 ```
 
 ## 技术架构
