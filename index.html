@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Sword Cursor - 演示</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px;
+      max-width: 800px;
+    }
+
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      opacity: 0.9;
+    }
+
+    .controls {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: white;
+      color: #667eea;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .info {
+      margin-top: 40px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .info h3 {
+      margin-bottom: 10px;
+    }
+
+    .info p {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .direction-display {
+      margin-top: 20px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ffeb3b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚔️ Web Sword Cursor</h1>
+    <p>移动鼠标，体验剑形指针！剑会跟随你的移动方向旋转。</p>
+
+    <div class="controls">
+      <button id="enableBtn">启用剑形指针</button>
+      <button id="disableBtn" style="display: none;">禁用剑形指针</button>
+      <button id="sizeSmallBtn">小尺寸 (24px)</button>
+      <button id="sizeMediumBtn">中尺寸 (32px)</button>
+      <button id="sizeLargeBtn">大尺寸 (48px)</button>
+    </div>
+
+    <div class="direction-display" id="directionDisplay">
+      当前方向: <span id="direction">idle</span>
+    </div>
+
+    <div class="info">
+      <h3>使用方法</h3>
+      <p>在你的项目中导入并使用：</p>
+      <code>import { initSwordCursor } from 'web-sword-cursor';</code><br>
+      <code>initSwordCursor({ size: 32 });</code>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initSwordCursor } from './src/index.ts';
+
+    let cursorManager = null;
+
+    const enableBtn = document.getElementById('enableBtn');
+    const disableBtn = document.getElementById('disableBtn');
+    const directionSpan = document.getElementById('direction');
+
+    enableBtn.addEventListener('click', () => {
+      if (!cursorManager) {
+        cursorManager = initSwordCursor({ size: 32 });
+        
+        // 更新按钮显示
+        enableBtn.style.display = 'none';
+        disableBtn.style.display = 'inline-block';
+
+        // 定期更新方向显示
+        setInterval(() => {
+          if (cursorManager) {
+            directionSpan.textContent = cursorManager.getCurrentDirection();
+          }
+        }, 100);
+      }
+    });
+
+    disableBtn.addEventListener('click', () => {
+      if (cursorManager) {
+        cursorManager.destroy();
+        cursorManager = null;
+        
+        // 更新按钮显示
+        enableBtn.style.display = 'inline-block';
+        disableBtn.style.display = 'none';
+        directionSpan.textContent = 'idle';
+      }
+    });
+
+    // 尺寸控制
+    document.getElementById('sizeSmallBtn').addEventListener('click', () => {
+      if (cursorManager) {
+        cursorManager.updateOptions({ size: 24 });
+      }
+    });
+
+    document.getElementById('sizeMediumBtn').addEventListener('click', () => {
+      if (cursorManager) {
+        cursorManager.updateOptions({ size: 32 });
+      }
+    });
+
+    document.getElementById('sizeLargeBtn').addEventListener('click', () => {
+      if (cursorManager) {
+        cursorManager.updateOptions({ size: 48 });
+      }
+    });
+  </script>
+</body>
+</html>
+

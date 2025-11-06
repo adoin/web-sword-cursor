@@ -1,0 +1,41 @@
+{
+  "name": "web-sword-cursor",
+  "version": "1.0.0",
+  "description": "一个用于植入型替换网页鼠标指针的 JavaScript 库，支持运动方向显示",
+  "type": "module",
+  "main": "./dist/web-sword-cursor.umd.js",
+  "module": "./dist/web-sword-cursor.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/web-sword-cursor.es.js",
+      "require": "./dist/web-sword-cursor.umd.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "cursor",
+    "pointer",
+    "mouse",
+    "sword",
+    "custom-cursor",
+    "javascript",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.1"
+  }
+}
