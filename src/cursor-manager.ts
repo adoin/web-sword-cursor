@@ -1,13 +1,14 @@
-import { CursorOptions, Direction, Position, FloatingObjectType } from './types';
+import { CursorOptions, Direction, Position, FloatingObjectType, RippleOptions, RippleType } from './types';
 import defaultSwordSvg from './assets/svgs/sword-1.svg';
 
 /**
  * 鼠标指针管理器
  */
 export class CursorManager {
-  private options: Required<Omit<CursorOptions, 'swordItem' | 'floatingObjects'>> & { 
+  private options: Required<Omit<CursorOptions, 'swordItem' | 'floatingObjects' | 'ripple'>> & { 
     swordItem: string | SVGElement | undefined;
     floatingObjects: FloatingObjectType[];
+    ripple: Required<RippleOptions>;
   };
   private cursorElement: HTMLElement | null = null;
   private lastPosition: Position = { x: 0, y: 0 };
@@ -16,7 +17,7 @@ export class CursorManager {
   private isActive: boolean = false;
   private currentAngle: number = -45; // 默认角度：从左下到右上（↗）在标准坐标系中是 -45度
   private targetAngle: number = -45; // 目标角度
-  private readonly ANGLE_THRESHOLD: number = 18; // 角度变化阈值（度）
+  private readonly ANGLE_THRESHOLD: number = 6; // 角度变化阈值（度）
   private readonly LARGE_ANGLE_THRESHOLD: number = 90; // 大角度变化阈值（度）
   private animationFrameId: number | null = null; // 动画帧ID
   private readonly ANGLE_LERP_SPEED: number = 0.2; // 角度插值速度（0-1）
@@ -39,6 +40,10 @@ export class CursorManager {
     'lightning': { color: '', fontSize: 0.6 } // 闪电 emoji
   };
   private readonly BASE_ANGULAR_SPEED: number = 2; // 基础角速度（度/帧）
+  
+  // 波纹相关
+  private lastRippleTime: number = 0; // 上次生成波纹的时间
+  private rippleElements: Set<HTMLElement | SVGElement> = new Set(); // 当前存在的波纹元素
 
   constructor(options: CursorOptions = {}) {
     this.options = {
@@ -47,7 +52,15 @@ export class CursorManager {
       directionSensitivity: options.directionSensitivity ?? 50,
       zIndex: options.zIndex ?? 9999,
       swordItem: options.swordItem,
-      floatingObjects: (options.floatingObjects ?? []).slice(0, 3) // 最多3个
+      floatingObjects: (options.floatingObjects ?? []).slice(0, 3), // 最多3个
+      ripple: {
+        enabled: options.ripple?.enabled ?? false,
+        type: options.ripple?.type ?? 'dot',
+        maxRadius: options.ripple?.maxRadius ?? 50,
+        duration: options.ripple?.duration ?? 1000,
+        interval: options.ripple?.interval ?? 100,
+        maxCount: options.ripple?.maxCount ?? 5
+      }
     };
     
     // 初始化漂浮物角度（平均分布）
@@ -91,6 +104,7 @@ export class CursorManager {
     this.stopAnimationLoop();
     this.removeEventListeners();
     this.removeCursorElement();
+    this.clearAllRipples();
     this.restoreDefaultCursor();
 
     this.isActive = false;
@@ -504,6 +518,200 @@ export class CursorManager {
   }
 
   /**
+   * 清除所有波纹元素
+   */
+  private clearAllRipples(): void {
+    this.rippleElements.forEach(ripple => {
+      ripple.remove();
+    });
+    this.rippleElements.clear();
+  }
+
+  /**
+   * 创建一个波纹效果
+   */
+  private createRipple(x: number, y: number): void {
+    if (!this.options.ripple.enabled) return;
+    
+    const { type } = this.options.ripple;
+    
+    if (type === 'dot') {
+      this.createDotRipple(x, y);
+    } else if (type === 'boat') {
+      this.createBoatRipple(x, y);
+    }
+  }
+
+  /**
+   * 创建圆形扩散波纹（dot 类型）
+   */
+  private createDotRipple(x: number, y: number): void {
+    // 检查波纹数量限制
+    if (this.rippleElements.size >= this.options.ripple.maxCount) {
+      const firstRipple = this.rippleElements.values().next().value;
+      if (firstRipple) {
+        this.rippleElements.delete(firstRipple);
+        firstRipple.remove();
+      }
+    }
+    
+    const ripple = document.createElement('div');
+    ripple.className = 'web-sword-cursor-ripple';
+    
+    const { maxRadius, duration } = this.options.ripple;
+    const color = 'rgba(100, 200, 255, 0.6)'; // 固定淡蓝色
+    
+    ripple.style.cssText = `
+      position: fixed;
+      left: ${x}px;
+      top: ${y}px;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      border: 2px solid ${color};
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: ${this.options.zIndex - 1};
+      opacity: 1;
+    `;
+    
+    document.body.appendChild(ripple);
+    this.rippleElements.add(ripple);
+    
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      if (progress < 1) {
+        const currentRadius = maxRadius * progress;
+        const currentOpacity = 1 - progress;
+        const borderWidth = Math.max(1, 2 * (1 - progress));
+        
+        ripple.style.width = `${currentRadius * 2}px`;
+        ripple.style.height = `${currentRadius * 2}px`;
+        ripple.style.opacity = currentOpacity.toString();
+        ripple.style.borderWidth = `${borderWidth}px`;
+        
+        requestAnimationFrame(animate);
+      } else {
+        this.rippleElements.delete(ripple);
+        ripple.remove();
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }
+
+  /**
+   * 创建划船波纹（boat 类型）- 从剑尖向两侧后方拨开，形成 V 字型波纹
+   */
+  private createBoatRipple(x: number, y: number): void {
+    // 检查波纹数量限制
+    if (this.rippleElements.size >= this.options.ripple.maxCount) {
+      const firstRipple = this.rippleElements.values().next().value;
+      if (firstRipple) {
+        this.rippleElements.delete(firstRipple);
+        firstRipple.remove();
+      }
+    }
+    
+    const { maxRadius, duration } = this.options.ripple;
+    const color = 'rgba(100, 200, 255, 0.6)';
+    
+    // 剑的方向角度
+    const swordAngle = this.currentAngle;
+    const swordRad = (swordAngle * Math.PI) / 180;
+    
+    // V 字型：两条弧线从剑尖向两侧后方扩散，整体左转45度
+    // 相对于剑尖方向的偏移角度
+    const spreadAngle = 70; // 两侧各偏离 70 度
+    const rotationOffset = -45; // 整体左转45度
+    
+    const leftAngle = swordAngle + 180 - spreadAngle + rotationOffset; // 后方偏左 + 左转45度
+    const rightAngle = swordAngle + 180 + spreadAngle + rotationOffset; // 后方偏右 + 左转45度
+    
+    const boatDuration = duration * 0.6;
+    
+    // 创建两条弧形波纹
+    [
+      { angle: leftAngle, side: 1},  // 左侧，弧度向后
+      { angle: rightAngle, side: 1 }  // 右侧，弧度向后
+    ].forEach(({ angle, side }) => {
+      const startTime = Date.now();
+      const rad = (angle * Math.PI) / 180;
+      
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'web-sword-cursor-ripple-boat');
+      
+      const size = maxRadius * 4;
+      svg.setAttribute('width', size.toString());
+      svg.setAttribute('height', size.toString());
+      svg.setAttribute('viewBox', `${-size/2} ${-size/2} ${size} ${size}`);
+      
+      // 剑尖就在鼠标位置 (x, y)，因为 transform-origin: 100% 0% 和 translate(-100%, 0%)
+      svg.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        pointer-events: none;
+        z-index: ${this.options.zIndex - 1};
+        transform: translate(-50%, -50%);
+      `;
+      
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', '2');
+      path.setAttribute('stroke-linecap', 'round');
+      
+      document.body.appendChild(svg);
+      svg.appendChild(path);
+      this.rippleElements.add(svg);
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / boatDuration, 1);
+        
+        if (progress < 1) {
+          const currentRadius = maxRadius * progress * 2;
+          const currentOpacity = Math.pow(1 - progress, 1.5);
+          const strokeWidth = Math.max(1, 2 * (1 - progress));
+          
+          // 起点在剑尖（SVG 中心就是剑尖位置）
+          const startX = 0;
+          const startY = 0;
+          
+          // 终点沿扩散角度延伸
+          const endX = Math.cos(rad) * currentRadius;
+          const endY = Math.sin(rad) * currentRadius;
+          
+          // 贝塞尔曲线控制点：让弧线向后凸（圆心在剑尖前方）
+          // 控制点在中点基础上，向剑的前方偏移
+          const midX = endX * 0.5;
+          const midY = endY * 0.5;
+          const controlOffset = currentRadius * 0.25;
+          const controlX = midX + Math.cos(swordRad) * controlOffset * side;
+          const controlY = midY + Math.sin(swordRad) * controlOffset * side;
+          
+          const pathData = `M ${startX},${startY} Q ${controlX},${controlY} ${endX},${endY}`;
+          
+          path.setAttribute('d', pathData);
+          path.setAttribute('stroke-width', strokeWidth.toString());
+          path.setAttribute('opacity', currentOpacity.toString());
+          
+          requestAnimationFrame(animate);
+        } else {
+          this.rippleElements.delete(svg);
+          svg.remove();
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    });
+  }
+
+  /**
    * 移除自定义指针元素
    */
   private removeCursorElement(): void {
@@ -564,6 +772,14 @@ export class CursorManager {
     // 更新位置
     this.cursorElement.style.left = `${currentPosition.x}px`;
     this.cursorElement.style.top = `${currentPosition.y}px`;
+
+    // 生成波纹效果
+    if (this.options.ripple.enabled) {
+      if (now - this.lastRippleTime >= this.options.ripple.interval) {
+        this.createRipple(currentPosition.x, currentPosition.y);
+        this.lastRippleTime = now;
+      }
+    }
 
     // 计算方向
     if (this.options.showDirection) {
@@ -741,7 +957,17 @@ export class CursorManager {
    * 更新配置
    */
   public updateOptions(options: Partial<CursorOptions>): void {
-    this.options = { ...this.options, ...options };
+    // 合并 ripple 配置
+    if (options.ripple !== undefined) {
+      this.options.ripple = {
+        ...this.options.ripple,
+        ...options.ripple
+      };
+    }
+    
+    // 合并其他配置
+    const { ripple, ...otherOptions } = options;
+    Object.assign(this.options, otherOptions);
 
     if (this.cursorElement) {
       if (options.size !== undefined) {

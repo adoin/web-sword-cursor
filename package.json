@@ -1,6 +1,6 @@
 {
   "name": "web-sword-cursor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "一个用于植入型替换网页鼠标指针的 JavaScript 库，支持运动方向显示",
   "type": "module",
   "main": "./dist/web-sword-cursor.umd.js",

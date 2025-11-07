@@ -5,10 +5,10 @@
  */
 
 import { CursorManager } from './cursor-manager';
-import { CursorOptions, Direction, Position, FloatingObjectType } from './types';
+import { CursorOptions, Direction, Position, FloatingObjectType, RippleOptions, RippleType } from './types';
 
 // 导出类型
-export type { CursorOptions, Direction, Position, FloatingObjectType };
+export type { CursorOptions, Direction, Position, FloatingObjectType, RippleOptions, RippleType };
 
 // 导出主类
 export { CursorManager };

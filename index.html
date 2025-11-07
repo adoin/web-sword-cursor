@@ -127,6 +127,13 @@
       <button id="floatingCustomBtn">自定义 (⚡○)</button>
     </div>
 
+    <div class="controls">
+      <h3 style="width: 100%; margin: 10px 0 5px 0; font-size: 14px;">波纹效果：</h3>
+      <button id="rippleDisableBtn">关闭波纹</button>
+      <button id="rippleDotBtn">圆形波纹 🌊</button>
+      <button id="rippleBoatBtn">划船波纹 🚣</button>
+    </div>
+
     <div class="direction-display" id="directionDisplay">
       当前方向: <span id="direction">idle</span><br>
       当前速度: <span id="speed">0</span> px/s
@@ -157,6 +164,7 @@
     let cursorManager = null;
     let currentSwordItem = undefined; // undefined 表示使用默认
     let currentFloatingObjects = []; // 当前漂浮物配置
+    let currentRippleConfig = { enabled: false }; // 当前波纹配置
     let sword2SvgCache = null; // 缓存 sword-2 SVG 内容
 
     const enableBtn = document.getElementById('enableBtn');
@@ -195,6 +203,7 @@
         size: 32, 
         swordItem: currentSwordItem,
         floatingObjects: currentFloatingObjects,
+        ripple: currentRippleConfig,
         ...options 
       });
       
@@ -311,6 +320,34 @@
 
     document.getElementById('floatingCustomBtn').addEventListener('click', () => {
       currentFloatingObjects = ['lightning', 'circle'];
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    // 波纹效果配置
+    document.getElementById('rippleDisableBtn').addEventListener('click', () => {
+      currentRippleConfig = { enabled: false };
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('rippleDotBtn').addEventListener('click', () => {
+      currentRippleConfig = { 
+        enabled: true,
+        type: 'dot'
+      };
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('rippleBoatBtn').addEventListener('click', () => {
+      currentRippleConfig = { 
+        enabled: true,
+        type: 'boat'
+      };
       if (cursorManager) {
         initOrReinitCursor();
       }

@@ -4,6 +4,29 @@
 export type FloatingObjectType = 'circle' | 'lightning' | 'star';
 
 /**
+ * 波纹类型
+ */
+export type RippleType = 'dot' | 'boat';
+
+/**
+ * 波纹效果配置选项
+ */
+export interface RippleOptions {
+  /** 是否启用波纹效果 */
+  enabled?: boolean;
+  /** 波纹类型：'dot' 圆形扩散，'boat' 划船效果（沿剑尖两侧拨开） */
+  type?: RippleType;
+  /** 波纹最大半径（像素） */
+  maxRadius?: number;
+  /** 波纹持续时间（毫秒） */
+  duration?: number;
+  /** 波纹生成间隔（毫秒） */
+  interval?: number;
+  /** 最大同时存在的波纹数量 */
+  maxCount?: number;
+}
+
+/**
  * 鼠标指针配置选项
  */
 export interface CursorOptions {
@@ -19,6 +42,8 @@ export interface CursorOptions {
   swordItem?: string | SVGElement;
   /** 漂浮物配置（最多3个，最少0个），第一个最靠前，后面依次靠后。默认为空数组 */
   floatingObjects?: FloatingObjectType[];
+  /** 波纹效果配置 */
+  ripple?: RippleOptions;
 }
 
 /**
