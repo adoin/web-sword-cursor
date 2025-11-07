@@ -179,8 +179,8 @@
       }
       
       try {
-        // 使用相对路径，兼容 GitHub Pages
-        const response = await fetch('./src/public/sword-2.svg');
+        // 从 public 目录加载（Vite 会自动复制到构建输出目录的根路径）
+        const response = await fetch('./sword-2.svg');
         if (!response.ok) {
           throw new Error('Failed to load sword-2.svg');
         }
