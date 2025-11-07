@@ -1,4 +1,9 @@
 /**
+ * 漂浮物类型
+ */
+export type FloatingObjectType = 'circle' | 'lightning' | 'star';
+
+/**
  * 鼠标指针配置选项
  */
 export interface CursorOptions {
@@ -12,6 +17,8 @@ export interface CursorOptions {
   zIndex?: number;
   /** 自定义剑 SVG（可以是 SVG 字符串或 SVGElement），不传则使用内置默认图标 */
   swordItem?: string | SVGElement;
+  /** 漂浮物配置（最多3个，最少0个），第一个最靠前，后面依次靠后。默认为空数组 */
+  floatingObjects?: FloatingObjectType[];
 }
 
 /**

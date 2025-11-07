@@ -117,6 +117,16 @@
       <button id="sizeLargeBtn">大尺寸 (48px)</button>
     </div>
 
+    <div class="controls">
+      <h3 style="width: 100%; margin: 10px 0 5px 0; font-size: 14px;">漂浮物配置：</h3>
+      <button id="floatingNoneBtn">无漂浮物</button>
+      <button id="floatingCircleBtn">圆形 ○</button>
+      <button id="floatingStarBtn">五角星 ⭐</button>
+      <button id="floatingLightningBtn">闪电 ⚡</button>
+      <button id="floatingAllBtn">全部 (○⭐⚡)</button>
+      <button id="floatingCustomBtn">自定义 (⚡○)</button>
+    </div>
+
     <div class="direction-display" id="directionDisplay">
       当前方向: <span id="direction">idle</span><br>
       当前速度: <span id="speed">0</span> px/s
@@ -146,6 +156,7 @@
 
     let cursorManager = null;
     let currentSwordItem = undefined; // undefined 表示使用默认
+    let currentFloatingObjects = []; // 当前漂浮物配置
     let sword2SvgCache = null; // 缓存 sword-2 SVG 内容
 
     const enableBtn = document.getElementById('enableBtn');
@@ -183,6 +194,7 @@
       cursorManager = initSwordCursor({ 
         size: 32, 
         swordItem: currentSwordItem,
+        floatingObjects: currentFloatingObjects,
         ...options 
       });
       
@@ -258,6 +270,49 @@
     document.getElementById('sizeLargeBtn').addEventListener('click', () => {
       if (cursorManager) {
         cursorManager.updateOptions({ size: 48 });
+      }
+    });
+
+    // 漂浮物配置
+    document.getElementById('floatingNoneBtn').addEventListener('click', () => {
+      currentFloatingObjects = [];
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('floatingCircleBtn').addEventListener('click', () => {
+      currentFloatingObjects = ['circle'];
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('floatingStarBtn').addEventListener('click', () => {
+      currentFloatingObjects = ['star'];
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('floatingLightningBtn').addEventListener('click', () => {
+      currentFloatingObjects = ['lightning'];
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('floatingAllBtn').addEventListener('click', () => {
+      currentFloatingObjects = ['circle', 'star', 'lightning'];
+      if (cursorManager) {
+        initOrReinitCursor();
+      }
+    });
+
+    document.getElementById('floatingCustomBtn').addEventListener('click', () => {
+      currentFloatingObjects = ['lightning', 'circle'];
+      if (cursorManager) {
+        initOrReinitCursor();
       }
     });
   </script>

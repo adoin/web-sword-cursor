@@ -1,11 +1,14 @@
-import { CursorOptions, Direction, Position } from './types';
+import { CursorOptions, Direction, Position, FloatingObjectType } from './types';
 import defaultSwordSvg from './assets/svgs/sword-1.svg';
 
 /**
  * 鼠标指针管理器
  */
 export class CursorManager {
-  private options: Required<Omit<CursorOptions, 'swordItem'>> & { swordItem: string | SVGElement | undefined };
+  private options: Required<Omit<CursorOptions, 'swordItem' | 'floatingObjects'>> & { 
+    swordItem: string | SVGElement | undefined;
+    floatingObjects: FloatingObjectType[];
+  };
   private cursorElement: HTMLElement | null = null;
   private lastPosition: Position = { x: 0, y: 0 };
   private currentDirection: Direction = 'idle';
@@ -13,16 +16,29 @@ export class CursorManager {
   private isActive: boolean = false;
   private currentAngle: number = -45; // 默认角度：从左下到右上（↗）在标准坐标系中是 -45度
   private targetAngle: number = -45; // 目标角度
-  private readonly ANGLE_THRESHOLD: number = 3; // 角度变化阈值（度）
+  private readonly ANGLE_THRESHOLD: number = 18; // 角度变化阈值（度）
   private readonly LARGE_ANGLE_THRESHOLD: number = 90; // 大角度变化阈值（度）
   private animationFrameId: number | null = null; // 动画帧ID
   private readonly ANGLE_LERP_SPEED: number = 0.2; // 角度插值速度（0-1）
   private lastMoveTime: number = 0; // 上次移动时间
   private currentSpeed: number = 0; // 当前速度（像素/秒）
+  private velocityAngle: number = -45; // 速度方向角度（鼠标移动的方向）
   private readonly MIN_GLOW_SCALE: number = 0.8; // 最小光晕缩放（移动时）
   private readonly MAX_GLOW_SCALE: number = 2.5; // 最大光晕缩放
   private readonly SPEED_THRESHOLD: number = 1000; // 速度阈值（像素/秒，超过此值光晕达到最大）
   private readonly MIN_SPEED_FOR_GLOW: number = 50; // 显示光晕的最小速度（px/s）
+  
+  // 漂浮物相关
+  private orbitAngles: number[] = []; // 漂浮物的当前角度
+  private readonly ORBIT_RADII: number[] = [10, 18, 26]; // 三个不同的轨道半径
+  private readonly BALL_POSITIONS: number[] = [0.2, 0.5, 0.8]; // 漂浮物在轴线上的位置（靠前到靠后）
+  private readonly BALL_SIZES: number[] = [4, 6, 8]; // 漂浮物的基础大小
+  private readonly SHAPE_CONFIG: Record<FloatingObjectType, { color: string; fontSize?: number }> = {
+    'circle': { color: 'rgba(173, 216, 230, 0.9)' }, // 淡蓝色圆形
+    'star': { color: 'rgba(255, 50, 50, 1)' }, // 红色五角星（加深颜色，增加不透明度）
+    'lightning': { color: '', fontSize: 0.6 } // 闪电 emoji
+  };
+  private readonly BASE_ANGULAR_SPEED: number = 2; // 基础角速度（度/帧）
 
   constructor(options: CursorOptions = {}) {
     this.options = {
@@ -30,8 +46,16 @@ export class CursorManager {
       showDirection: options.showDirection ?? true,
       directionSensitivity: options.directionSensitivity ?? 50,
       zIndex: options.zIndex ?? 9999,
-      swordItem: options.swordItem
+      swordItem: options.swordItem,
+      floatingObjects: (options.floatingObjects ?? []).slice(0, 3) // 最多3个
     };
+    
+    // 初始化漂浮物角度（平均分布）
+    const count = this.options.floatingObjects.length;
+    if (count > 0) {
+      const angleStep = 360 / count;
+      this.orbitAngles = Array.from({ length: count }, (_, i) => i * angleStep);
+    }
   }
 
   /**
@@ -239,6 +263,90 @@ export class CursorManager {
     glowCircle.style.transformOrigin = '100% 0%';  // 以剑尖为中心旋转
     
     svgElement.appendChild(glowCircle);
+    
+    // 添加旋转小球（在 SVG 外部，使用 HTML div）
+    this.addOrbitBalls();
+  }
+
+  /**
+   * 添加围绕鼠标飞行方向旋转的漂浮物
+   */
+  private addOrbitBalls(): void {
+    if (!this.cursorElement) return;
+    
+    const floatingObjects = this.options.floatingObjects;
+    
+    // 根据配置创建漂浮物
+    floatingObjects.forEach((shape, i) => {
+      const element = document.createElement('div');
+      element.id = `orbit-ball-${i}`;
+      
+      const config = this.SHAPE_CONFIG[shape];
+      const color = config.color;
+      const size = this.BALL_SIZES[i] * 2;
+      
+      // 基础样式
+      let shapeStyle = '';
+      
+      if (shape === 'circle') {
+        // 圆形
+        shapeStyle = `
+          border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, ${color}, ${color.replace('0.9', '0.7')});
+        `;
+      } else if (shape === 'star') {
+        // 五角星 ⭐
+        shapeStyle = `
+          clip-path: polygon(
+            50% 0%, 
+            61% 35%, 
+            98% 35%, 
+            68% 57%, 
+            79% 91%, 
+            50% 70%, 
+            21% 91%, 
+            32% 57%, 
+            2% 35%, 
+            39% 35%
+          );
+          background: linear-gradient(135deg, ${color}, ${color.replace('0.9', '0.6')});
+        `;
+      } else if (shape === 'lightning') {
+        // 闪电 emoji ⚡
+        element.textContent = '⚡';
+        const fontSize = config.fontSize ?? 0.6;
+        shapeStyle = `
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: ${size * fontSize}px;
+          line-height: 1;
+          background: transparent;
+        `;
+      }
+      
+      // box-shadow（闪电 emoji 不需要，五角星加强）
+      let shadowStyle = '';
+      if (shape === 'circle') {
+        shadowStyle = `box-shadow: 0 0 ${size * 1.5}px ${color.replace('0.9', '0.5')};`;
+      } else if (shape === 'star') {
+        // 五角星使用更强的阴影
+        shadowStyle = `box-shadow: 0 0 ${size * 2}px ${color.replace('1', '0.8')}, 0 0 ${size * 3}px ${color.replace('1', '0.4')};`;
+      }
+      
+      element.style.cssText = `
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        ${shapeStyle}
+        ${shadowStyle}
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      `;
+      
+      this.cursorElement!.appendChild(element);
+    });
   }
 
   /**
@@ -267,6 +375,131 @@ export class CursorManager {
       
       glowElement.style.transform = `rotate(${glowAngle}deg) scale(${glowScale})`;
       glowElement.style.opacity = glowOpacity.toString();
+    }
+  }
+
+  /**
+   * 更新围绕飞行方向旋转的漂浮物
+   * 漂浮物绕飞行轨迹线 L 旋转，保持固定半径 d
+   */
+  private updateOrbitBalls(): void {
+    if (!this.cursorElement) return;
+    
+    const floatingObjects = this.options.floatingObjects;
+    const count = floatingObjects.length;
+    
+    // 如果没有漂浮物，直接返回
+    if (count === 0) return;
+    
+    // 如果速度低于阈值，隐藏漂浮物
+    if (this.currentSpeed < this.MIN_SPEED_FOR_GLOW) {
+      for (let i = 0; i < count; i++) {
+        const ball = this.cursorElement.querySelector(`#orbit-ball-${i}`) as HTMLElement;
+        if (ball) {
+          ball.style.opacity = '0';
+        }
+      }
+      return;
+    }
+    
+    // 根据速度计算角速度（速度越快，旋转越快）
+    const speedRatio = Math.min(this.currentSpeed / this.SPEED_THRESHOLD, 1);
+    const angularSpeed = this.BASE_ANGULAR_SPEED * (1 + speedRatio * 4); // 1x ~ 5x 速度
+    
+    // 容器大小
+    const containerSize = this.options.size;
+    const centerX = containerSize / 2;
+    const centerY = containerSize / 2;
+    
+    // 飞行方向的角度（使用速度方向，不是剑的朝向）
+    // 往右转 45 度
+    const adjustedAngle = this.velocityAngle + 45;
+    const flightAngleRad = (adjustedAngle * Math.PI) / 180;
+    
+    // 飞行方向的单位向量（L 的方向，即鼠标移动的方向 + 45度）
+    const dirX = Math.cos(flightAngleRad);
+    const dirY = Math.sin(flightAngleRad);
+    
+    // 垂直于 L 的方向向量（在 2D 平面上，逆时针旋转 90°）
+    const perpX = -dirY;
+    const perpY = dirX;
+    
+    // 更新每个漂浮物
+    for (let i = 0; i < count; i++) {
+      // 更新旋转角度
+      this.orbitAngles[i] = (this.orbitAngles[i] + angularSpeed) % 360;
+      const theta = (this.orbitAngles[i] * Math.PI) / 180;
+      
+      // 小球在 L 轴线上的位置（圆心 O）
+      const positionAlongAxis = this.BALL_POSITIONS[i]; // 0.3, 0.5, 0.7
+      const axisLength = containerSize * 0.7;
+      const distAlongAxis = (positionAlongAxis - 0.5) * axisLength;
+      
+      // O 点坐标（球的旋转中心）
+      const oX = centerX + dirX * distAlongAxis;
+      const oY = centerY + dirY * distAlongAxis;
+      
+      // 半径 d（每个球不同）
+      const radius = this.ORBIT_RADII[i];
+      
+      // 球绕 O 点旋转，球到 O 的距离始终是 d
+      // 在 3D 空间中：
+      // - L 是 Z 轴（飞行方向）
+      // - perpX/perpY 是 X 轴（垂直于 L 在屏幕上）
+      // - 第三个轴是 Y 轴（垂直于屏幕，朝外）
+      
+      // 用 theta 角度在垂直于 L 的圆上旋转
+      // X 分量（屏幕上可见的垂直偏移）
+      const x_offset = radius * Math.cos(theta) * perpX;
+      const y_offset = radius * Math.cos(theta) * perpY;
+      
+      // Z 分量（深度，垂直于屏幕）
+      const z_depth = radius * Math.sin(theta);
+      
+      // 球的 2D 投影位置
+      const ballCenterX = oX + x_offset;
+      const ballCenterY = oY + y_offset;
+      
+      // 景深效果
+      // z_depth > 0: 球在屏幕前方（靠近观察者）
+      // z_depth < 0: 球在屏幕后方（远离观察者）
+      const maxDepth = radius; // 最大深度
+      const depthRatio = (z_depth + maxDepth) / (2 * maxDepth); // 0 ~ 1 (0=最远, 1=最近)
+      
+      // 透视缩放：近大远小
+      const perspectiveScale = 0.7 + 0.6 * depthRatio; // 0.7x ~ 1.3x
+      
+      // 透明度：近亮远暗
+      const depthOpacity = 0.4 + 0.6 * depthRatio; // 0.4 ~ 1.0
+      
+      // div 左上角位置
+      const ballSize = this.BALL_SIZES[i] * 2;
+      const ballX = ballCenterX - (ballSize * perspectiveScale) / 2;
+      const ballY = ballCenterY - (ballSize * perspectiveScale) / 2;
+      
+      // 更新位置和样式
+      const ball = this.cursorElement.querySelector(`#orbit-ball-${i}`) as HTMLElement;
+      if (ball) {
+        ball.style.left = `${ballX}px`;
+        ball.style.top = `${ballY}px`;
+        
+        // 综合透明度：速度 + 景深 + 层次
+        const baseOpacity = 0.5 + 0.4 * speedRatio;
+        const opacity = baseOpacity * depthOpacity - i * 0.05;
+        ball.style.opacity = Math.max(0.2, Math.min(1, opacity)).toString();
+        
+        // 透视缩放
+        ball.style.transform = `scale(${perspectiveScale})`;
+        
+        // Z-index：近的在上，远的在下
+        const zIndex = Math.round(1000 + depthRatio * 100);
+        ball.style.zIndex = zIndex.toString();
+        
+        // 模糊效果：只有后方（远处）的元素模糊，前方清晰
+        // depthRatio > 0.6 时（前方 60%）不模糊
+        const blurAmount = depthRatio > 0.6 ? 0 : (0.6 - depthRatio) * 3; // 前方0px，后方最多1.8px
+        ball.style.filter = blurAmount > 0.1 ? `blur(${blurAmount}px)` : 'none';
+      }
     }
   }
 
@@ -307,7 +540,7 @@ export class CursorManager {
     const currentPosition: Position = { x: e.clientX, y: e.clientY };
     const now = Date.now();
 
-    // 计算速度（像素/秒）
+    // 计算速度和方向（像素/秒）
     if (this.lastMoveTime > 0) {
       const timeDelta = (now - this.lastMoveTime) / 1000; // 转换为秒
       if (timeDelta > 0) {
@@ -318,6 +551,12 @@ export class CursorManager {
         
         // 使用指数移动平均平滑速度变化
         this.currentSpeed = this.currentSpeed * 0.7 + instantSpeed * 0.3;
+        
+        // 计算速度方向（移动方向）
+        if (distance > 1) { // 移动距离足够大才更新方向
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          this.velocityAngle = angle;
+        }
       }
     }
     this.lastMoveTime = now;
@@ -438,6 +677,9 @@ export class CursorManager {
 
     // 更新光晕方向（与剑身方向相反）
     this.updateGlowDirection();
+
+    // 更新围绕飞行方向旋转的小球
+    this.updateOrbitBalls();
 
     // 继续动画循环
     this.animationFrameId = requestAnimationFrame(this.animateRotation);
