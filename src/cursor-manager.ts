@@ -52,9 +52,9 @@ export class CursorManager {
       directionSensitivity: options.directionSensitivity ?? 50,
       zIndex: options.zIndex ?? 9999,
       swordItem: options.swordItem,
-      floatingObjects: (options.floatingObjects ?? []).slice(0, 3), // 最多3个
+      floatingObjects: (options.floatingObjects ?? []).slice(0, 3), // 最多3个，默认无漂浮物
       ripple: {
-        enabled: options.ripple?.enabled ?? false,
+        enabled: options.ripple?.enabled ?? true, // 默认开启波纹
         type: options.ripple?.type ?? 'boat', // 默认使用划船波纹
         maxRadius: options.ripple?.maxRadius ?? 50,
         duration: options.ripple?.duration ?? 1000,
