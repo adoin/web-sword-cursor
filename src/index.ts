@@ -5,10 +5,10 @@
  */
 
 import { CursorManager } from './cursor-manager';
-import { CursorOptions, Direction, Position, SwordType } from './types';
+import { CursorOptions, Direction, Position } from './types';
 
 // 导出类型
-export type { CursorOptions, Direction, Position, SwordType };
+export type { CursorOptions, Direction, Position };
 
 // 导出主类
 export { CursorManager };

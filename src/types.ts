@@ -1,9 +1,4 @@
 /**
- * 可用的剑类型
- */
-export type SwordType = 'sword-1' | 'sword-2';
-
-/**
  * 鼠标指针配置选项
  */
 export interface CursorOptions {
@@ -15,8 +10,8 @@ export interface CursorOptions {
   directionSensitivity?: number;
   /** 自定义 z-index */
   zIndex?: number;
-  /** 选择使用的剑类型 */
-  swordType?: SwordType;
+  /** 自定义剑 SVG（可以是 SVG 字符串或 SVGElement），不传则使用内置默认图标 */
+  swordItem?: string | SVGElement;
 }
 
 /**

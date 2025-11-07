@@ -37,11 +37,23 @@ yarn add web-sword-cursor
 ```javascript
 import { initSwordCursor } from 'web-sword-cursor';
 
-// 快速启用（默认使用 sword-1）
+// 1. 快速启用（使用内置默认剑）
 initSwordCursor();
 
-// 选择特定的剑
-initSwordCursor({ swordType: 'sword-2' });
+// 2. 从外部文件加载 SVG
+fetch('/path/to/your-sword.svg')
+  .then(response => response.text())
+  .then(svgString => {
+    initSwordCursor({ swordItem: svgString });
+  });
+
+// 3. 传入自定义 SVG 字符串
+const customSvg = `<svg viewBox="0 0 100 100">...</svg>`;
+initSwordCursor({ swordItem: customSvg });
+
+// 4. 传入 SVG DOM 元素
+const svgElement = document.querySelector('#my-sword-svg');
+initSwordCursor({ swordItem: svgElement });
 ```
 
 ### 高级使用
@@ -55,7 +67,7 @@ const manager = new CursorManager({
   showDirection: true,         // 显示运动方向
   directionSensitivity: 50,    // 方向更新灵敏度（毫秒）
   zIndex: 9999,                // 自定义 z-index
-  swordType: 'sword-1'         // 选择剑类型：'sword-1' 或 'sword-2'
+  swordItem: customSvg         // 自定义 SVG（字符串或 DOM），不传则使用内置默认
 });
 
 // 启用
@@ -106,14 +118,12 @@ constructor(options?: CursorOptions)
 ### 类型定义
 
 ```typescript
-type SwordType = 'sword-1' | 'sword-2';
-
 interface CursorOptions {
-  size?: number;                  // 指针大小（像素），默认 32
-  showDirection?: boolean;        // 是否显示运动方向，默认 true
-  directionSensitivity?: number;  // 方向更新灵敏度（毫秒），默认 50
-  zIndex?: number;                // 自定义 z-index，默认 9999
-  swordType?: SwordType;          // 选择剑类型，默认 'sword-1'
+  size?: number;                    // 指针大小（像素），默认 32
+  showDirection?: boolean;          // 是否显示运动方向，默认 true
+  directionSensitivity?: number;    // 方向更新灵敏度（毫秒），默认 50
+  zIndex?: number;                  // 自定义 z-index，默认 9999
+  swordItem?: string | SVGElement;  // 自定义 SVG（字符串或 DOM），不传则使用内置默认
 }
 
 type Direction = 
@@ -144,12 +154,34 @@ pnpm build
 pnpm type-check
 ```
 
-## 📐 SVG 方向约定
+## 📐 自定义 SVG 要求
 
-所有的剑形 SVG 图标都应该遵循以下方向约定：
+当使用自定义 SVG 时，请遵循以下要求：
+
+### 方向约定
 - **默认方向**：从左下到右上（↗），即 -45 度（或 315 度）方向
-- 这样可以确保所有图标在旋转时表现一致
+- 这样可以确保图标在旋转时表现一致
 - 详细的角度计算说明请参考 [docs/ANGLE_CALCULATION.md](docs/ANGLE_CALCULATION.md)
+
+### SVG 格式
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 确保有 viewBox 属性以便正确缩放 -->
+  <!-- SVG 内容... -->
+</svg>
+```
+
+### 示例：自定义箭头
+```javascript
+const arrowSvg = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <path d="M 10,10 L 90,50 L 10,90 L 30,50 Z" 
+          fill="red" stroke="#fff" stroke-width="2"/>
+  </svg>
+`;
+
+initSwordCursor({ swordItem: arrowSvg });
+```
 
 ## 📝 许可证
 

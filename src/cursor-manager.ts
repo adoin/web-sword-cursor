@@ -1,12 +1,11 @@
-import { CursorOptions, Direction, Position, SwordType } from './types';
-import sword1Svg from './assets/svgs/sword-1.svg';
-import sword2Svg from './assets/svgs/sword-2.svg';
+import { CursorOptions, Direction, Position } from './types';
+import defaultSwordSvg from './assets/svgs/sword-1.svg';
 
 /**
  * 鼠标指针管理器
  */
 export class CursorManager {
-  private options: Required<CursorOptions>;
+  private options: Required<Omit<CursorOptions, 'swordItem'>> & { swordItem: string | SVGElement | undefined };
   private cursorElement: HTMLElement | null = null;
   private lastPosition: Position = { x: 0, y: 0 };
   private currentDirection: Direction = 'idle';
@@ -19,19 +18,13 @@ export class CursorManager {
   private animationFrameId: number | null = null; // 动画帧ID
   private readonly ANGLE_LERP_SPEED: number = 0.2; // 角度插值速度（0-1）
 
-  // SVG 数据（内嵌到代码中）
-  private svgData: Map<SwordType, string> = new Map([
-    ['sword-1', sword1Svg],
-    ['sword-2', sword2Svg]
-  ]);
-
   constructor(options: CursorOptions = {}) {
     this.options = {
       size: options.size ?? 32,
       showDirection: options.showDirection ?? true,
       directionSensitivity: options.directionSensitivity ?? 50,
       zIndex: options.zIndex ?? 9999,
-      swordType: options.swordType ?? 'sword-1'
+      swordItem: options.swordItem
     };
   }
 
@@ -116,8 +109,7 @@ export class CursorManager {
     `;
 
     // 设置 SVG 内容
-    const svgContent = this.svgData.get(this.options.swordType) || '';
-    this.cursorElement.innerHTML = svgContent;
+    this.setSvgContent();
 
     // 确保 SVG 填充整个容器
     const svgElement = this.cursorElement.querySelector('svg');
@@ -130,6 +122,31 @@ export class CursorManager {
     }
 
     document.body.appendChild(this.cursorElement);
+  }
+
+  /**
+   * 设置 SVG 内容
+   */
+  private setSvgContent(): void {
+    if (!this.cursorElement) return;
+
+    const { swordItem } = this.options;
+
+    if (!swordItem) {
+      // 使用内置默认图标
+      this.cursorElement.innerHTML = defaultSwordSvg;
+    } else if (typeof swordItem === 'string') {
+      // 传入的是 SVG 字符串
+      this.cursorElement.innerHTML = swordItem;
+    } else if (swordItem instanceof SVGElement) {
+      // 传入的是 SVG DOM 元素
+      const clonedSvg = swordItem.cloneNode(true) as SVGElement;
+      this.cursorElement.appendChild(clonedSvg);
+    } else {
+      // 类型不对，使用默认
+      console.warn('Invalid swordItem type, using default sword');
+      this.cursorElement.innerHTML = defaultSwordSvg;
+    }
   }
 
   /**

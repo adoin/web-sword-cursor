@@ -110,8 +110,8 @@
     <div class="controls">
       <button id="enableBtn">启用剑形指针</button>
       <button id="disableBtn" style="display: none;">禁用剑形指针</button>
-      <button id="sword1Btn">剑 1</button>
-      <button id="sword2Btn">剑 2</button>
+      <button id="defaultSwordBtn">默认剑</button>
+      <button id="sword2Btn">剑 2 (外部文件)</button>
       <button id="sizeSmallBtn">小尺寸 (24px)</button>
       <button id="sizeMediumBtn">中尺寸 (32px)</button>
       <button id="sizeLargeBtn">大尺寸 (48px)</button>
@@ -124,9 +124,19 @@
     <div class="info">
       <h3>使用方法</h3>
       <p>在你的项目中导入并使用：</p>
-      <code>import { initSwordCursor } from 'web-sword-cursor';</code><br>
-      <code>initSwordCursor({ size: 32, swordType: 'sword-1' });</code>
-      <p style="margin-top: 10px;">可用的剑类型：<code>'sword-1'</code> 或 <code>'sword-2'</code></p>
+      <code>import { initSwordCursor } from 'web-sword-cursor';</code><br><br>
+      
+      <code>// 1. 使用默认剑</code><br>
+      <code>initSwordCursor();</code><br><br>
+      
+      <code>// 2. 从文件加载 SVG</code><br>
+      <code>fetch('/path/to/sword.svg')</code><br>
+      <code>  .then(r => r.text())</code><br>
+      <code>  .then(svg => initSwordCursor({ swordItem: svg }));</code><br><br>
+      
+      <code>// 3. 传入自定义 SVG 字符串</code><br>
+      <code>const svg = `&lt;svg viewBox="0 0 100 100"&gt;...&lt;/svg&gt;`;</code><br>
+      <code>initSwordCursor({ swordItem: svg });</code>
     </div>
   </div>
 
@@ -134,11 +144,32 @@
     import { initSwordCursor } from './src/index.ts';
 
     let cursorManager = null;
-    let currentSwordType = 'sword-1';
+    let currentSwordItem = undefined; // undefined 表示使用默认
+    let sword2SvgCache = null; // 缓存 sword-2 SVG 内容
 
     const enableBtn = document.getElementById('enableBtn');
     const disableBtn = document.getElementById('disableBtn');
     const directionSpan = document.getElementById('direction');
+
+    // 加载 sword-2.svg（使用浏览器原生 fetch API）
+    async function loadSword2() {
+      if (sword2SvgCache) {
+        return sword2SvgCache;
+      }
+      
+      try {
+        const response = await fetch('/src/public/sword-2.svg');
+        if (!response.ok) {
+          throw new Error('Failed to load sword-2.svg');
+        }
+        sword2SvgCache = await response.text();
+        return sword2SvgCache;
+      } catch (error) {
+        console.error('Error loading sword-2:', error);
+        alert('加载剑 2 失败，请确保文件存在');
+        return null;
+      }
+    }
 
     function initOrReinitCursor(options = {}) {
       // 如果已经存在，先销毁
@@ -149,7 +180,7 @@
       // 创建新的实例
       cursorManager = initSwordCursor({ 
         size: 32, 
-        swordType: currentSwordType,
+        swordItem: currentSwordItem,
         ...options 
       });
       
@@ -183,18 +214,27 @@
       }
     });
 
-    // 切换剑类型
-    document.getElementById('sword1Btn').addEventListener('click', () => {
-      currentSwordType = 'sword-1';
+    // 切换到默认剑
+    document.getElementById('defaultSwordBtn').addEventListener('click', () => {
+      currentSwordItem = undefined;
       if (cursorManager) {
         initOrReinitCursor();
       }
     });
 
-    document.getElementById('sword2Btn').addEventListener('click', () => {
-      currentSwordType = 'sword-2';
-      if (cursorManager) {
-        initOrReinitCursor();
+    // 切换到剑 2（从外部文件加载）
+    document.getElementById('sword2Btn').addEventListener('click', async () => {
+      const svg = await loadSword2();
+      if (svg) {
+        currentSwordItem = svg;
+        if (cursorManager) {
+          initOrReinitCursor();
+        } else {
+          // 如果还没启用，先启用
+          initOrReinitCursor();
+          enableBtn.style.display = 'none';
+          disableBtn.style.display = 'inline-block';
+        }
       }
     });
 
