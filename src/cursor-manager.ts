@@ -17,6 +17,12 @@ export class CursorManager {
   private readonly LARGE_ANGLE_THRESHOLD: number = 90; // 大角度变化阈值（度）
   private animationFrameId: number | null = null; // 动画帧ID
   private readonly ANGLE_LERP_SPEED: number = 0.2; // 角度插值速度（0-1）
+  private lastMoveTime: number = 0; // 上次移动时间
+  private currentSpeed: number = 0; // 当前速度（像素/秒）
+  private readonly MIN_GLOW_SCALE: number = 0.8; // 最小光晕缩放（移动时）
+  private readonly MAX_GLOW_SCALE: number = 2.5; // 最大光晕缩放
+  private readonly SPEED_THRESHOLD: number = 1000; // 速度阈值（像素/秒，超过此值光晕达到最大）
+  private readonly MIN_SPEED_FOR_GLOW: number = 50; // 显示光晕的最小速度（px/s）
 
   constructor(options: CursorOptions = {}) {
     this.options = {
@@ -236,16 +242,31 @@ export class CursorManager {
   }
 
   /**
-   * 更新光晕方向（与剑身方向相反）
+   * 更新光晕方向和大小（与剑身方向相反，大小根据速度变化）
    */
   private updateGlowDirection(): void {
     if (!this.cursorElement) return;
     
     const glowElement = this.cursorElement.querySelector('#tip-glow-element') as SVGElement;
     if (glowElement) {
+      // 如果速度低于阈值，隐藏光晕
+      if (this.currentSpeed < this.MIN_SPEED_FOR_GLOW) {
+        glowElement.style.opacity = '0';
+        return;
+      }
+      
       // 光的方向与剑身方向相反，即旋转 180 度
       const glowAngle = this.currentAngle + 180;
-      glowElement.style.transform = `rotate(${glowAngle}deg)`;
+      
+      // 根据速度计算光晕缩放比例
+      const speedRatio = Math.min(this.currentSpeed / this.SPEED_THRESHOLD, 1);
+      const glowScale = this.MIN_GLOW_SCALE + (this.MAX_GLOW_SCALE - this.MIN_GLOW_SCALE) * speedRatio;
+      
+      // 根据速度调整透明度（速度快时更亮）
+      const glowOpacity = 0.6 + 0.4 * speedRatio;
+      
+      glowElement.style.transform = `rotate(${glowAngle}deg) scale(${glowScale})`;
+      glowElement.style.opacity = glowOpacity.toString();
     }
   }
 
@@ -284,6 +305,22 @@ export class CursorManager {
     if (!this.cursorElement) return;
 
     const currentPosition: Position = { x: e.clientX, y: e.clientY };
+    const now = Date.now();
+
+    // 计算速度（像素/秒）
+    if (this.lastMoveTime > 0) {
+      const timeDelta = (now - this.lastMoveTime) / 1000; // 转换为秒
+      if (timeDelta > 0) {
+        const dx = currentPosition.x - this.lastPosition.x;
+        const dy = currentPosition.y - this.lastPosition.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const instantSpeed = distance / timeDelta;
+        
+        // 使用指数移动平均平滑速度变化
+        this.currentSpeed = this.currentSpeed * 0.7 + instantSpeed * 0.3;
+      }
+    }
+    this.lastMoveTime = now;
 
     // 更新位置
     this.cursorElement.style.left = `${currentPosition.x}px`;
@@ -291,7 +328,6 @@ export class CursorManager {
 
     // 计算方向
     if (this.options.showDirection) {
-      const now = Date.now();
       if (now - this.lastUpdateTime > this.options.directionSensitivity) {
         this.updateDirection(currentPosition);
         this.lastUpdateTime = now;
@@ -390,6 +426,16 @@ export class CursorManager {
     // 应用旋转（旋转中心在右上角）
     this.cursorElement.style.transform = `translate(-100%, 0%) rotate(${this.currentAngle}deg)`;
 
+    // 速度衰减（模拟摩擦力，静止时速度逐渐降为0）
+    const now = Date.now();
+    const timeSinceLastMove = (now - this.lastMoveTime) / 1000;
+    if (timeSinceLastMove > 0.1) { // 如果超过 100ms 没有移动
+      this.currentSpeed *= 0.85; // 速度衰减
+      if (this.currentSpeed < 1) {
+        this.currentSpeed = 0; // 速度太小时直接归零
+      }
+    }
+
     // 更新光晕方向（与剑身方向相反）
     this.updateGlowDirection();
 
@@ -440,6 +486,13 @@ export class CursorManager {
    */
   public getCurrentDirection(): Direction {
     return this.currentDirection;
+  }
+
+  /**
+   * 获取当前速度（像素/秒）
+   */
+  public getCurrentSpeed(): number {
+    return Math.round(this.currentSpeed);
   }
 
   /**

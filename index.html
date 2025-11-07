@@ -118,7 +118,8 @@
     </div>
 
     <div class="direction-display" id="directionDisplay">
-      当前方向: <span id="direction">idle</span>
+      当前方向: <span id="direction">idle</span><br>
+      当前速度: <span id="speed">0</span> px/s
     </div>
 
     <div class="info">
@@ -150,6 +151,7 @@
     const enableBtn = document.getElementById('enableBtn');
     const disableBtn = document.getElementById('disableBtn');
     const directionSpan = document.getElementById('direction');
+    const speedSpan = document.getElementById('speed');
 
     // 加载 sword-2.svg（使用浏览器原生 fetch API）
     async function loadSword2() {
@@ -193,10 +195,11 @@
       if (!cursorManager) {
         initOrReinitCursor();
         
-        // 定期更新方向显示
+        // 定期更新方向和速度显示
         setInterval(() => {
           if (cursorManager) {
             directionSpan.textContent = cursorManager.getCurrentDirection();
+            speedSpan.textContent = cursorManager.getCurrentSpeed();
           }
         }, 100);
       }
@@ -211,6 +214,7 @@
         enableBtn.style.display = 'inline-block';
         disableBtn.style.display = 'none';
         directionSpan.textContent = 'idle';
+        speedSpan.textContent = '0';
       }
     });
 

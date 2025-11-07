@@ -10,13 +10,14 @@
   - 自动渲染 SVG 滤镜光晕
   - 光的方向与剑身相反，创造剑气外放效果
   - 平滑跟随剑的旋转
+  - 🚀 **根据鼠标速度动态变化**：速度快时光晕更大更亮，速度慢时光晕更小
 - 🎬 平滑的旋转动画：
   - 使用 requestAnimationFrame 实现丝滑的插值动画
   - 大角度变化时自动使用快速翻转效果
   - 始终选择最短的旋转路径
 - ⚡ 智能角度阈值，避免抖动（≥3° 才更新）
 - 📦 纯 JavaScript，无依赖
-- 🎨 SVG 内嵌，无需额外资源文件
+- 🎨 灵活的图标系统：内置默认剑、支持自定义 SVG 字符串或 DOM 元素
 - 🔧 灵活的配置选项
 - 📱 支持 ES Module、UMD 和 IIFE 格式
 
@@ -76,6 +77,9 @@ manager.init();
 // 获取当前移动方向
 console.log(manager.getCurrentDirection());
 
+// 获取当前速度（像素/秒）
+console.log(manager.getCurrentSpeed()); // 例如：1250
+
 // 更新配置
 manager.updateOptions({ size: 48 });
 
@@ -113,6 +117,7 @@ constructor(options?: CursorOptions)
 - `init(): void` - 初始化并启用自定义鼠标指针
 - `destroy(): void` - 销毁并恢复默认鼠标指针
 - `getCurrentDirection(): Direction` - 获取当前移动方向
+- `getCurrentSpeed(): number` - 获取当前速度（像素/秒）
 - `updateOptions(options: Partial<CursorOptions>): void` - 更新配置
 
 ### 类型定义
