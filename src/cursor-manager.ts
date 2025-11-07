@@ -31,7 +31,7 @@ export class CursorManager {
   
   // 漂浮物相关
   private orbitAngles: number[] = []; // 漂浮物的当前角度
-  private readonly ORBIT_RADII: number[] = [10, 18, 26]; // 三个不同的轨道半径
+  private readonly ORBIT_RADII: number[] = [10, 18, 14]; // 三个不同的轨道半径（圆形、星星、闪电）
   private readonly BALL_POSITIONS: number[] = [0.2, 0.5, 0.8]; // 漂浮物在轴线上的位置（靠前到靠后）
   private readonly BALL_SIZES: number[] = [4, 6, 8]; // 漂浮物的基础大小
   private readonly SHAPE_CONFIG: Record<FloatingObjectType, { color: string; fontSize?: number }> = {
