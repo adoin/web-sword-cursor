@@ -20,6 +20,9 @@ function svgLoader() {
 }
 
 export default defineConfig({
+  // GitHub Pages 需要设置 base 为仓库名
+  // 开发环境使用 '/', 生产环境使用 '/web-sword-cursor/'
+  base: process.env.NODE_ENV === 'production' ? '/web-sword-cursor/' : '/',
   plugins: [svgLoader()],
   server: {
     port: 3111,
