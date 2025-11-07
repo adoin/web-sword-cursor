@@ -55,7 +55,7 @@ export class CursorManager {
       floatingObjects: (options.floatingObjects ?? []).slice(0, 3), // 最多3个
       ripple: {
         enabled: options.ripple?.enabled ?? false,
-        type: options.ripple?.type ?? 'dot',
+        type: options.ripple?.type ?? 'boat', // 默认使用划船波纹
         maxRadius: options.ripple?.maxRadius ?? 50,
         duration: options.ripple?.duration ?? 1000,
         interval: options.ripple?.interval ?? 100,
