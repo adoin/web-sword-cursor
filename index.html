@@ -179,7 +179,8 @@
       }
       
       try {
-        const response = await fetch('/src/public/sword-2.svg');
+        // 使用相对路径，兼容 GitHub Pages
+        const response = await fetch('./src/public/sword-2.svg');
         if (!response.ok) {
           throw new Error('Failed to load sword-2.svg');
         }
