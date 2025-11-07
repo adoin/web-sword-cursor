@@ -18,8 +18,9 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "pub": "tsc --noEmit && vite build && npm publish",
+    "build": "tsc && BUILD_LIB=true vite build",
+    "build:demo": "vite build",
+    "pub": "tsc && BUILD_LIB=true vite build && npm publish",
     "preview": "vite preview",
     "type-check": "tsc --noEmit"
   },
